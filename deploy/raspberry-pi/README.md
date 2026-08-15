@@ -32,7 +32,7 @@ bash deploy/raspberry-pi/install.sh
 
 Either way the script does **everything**, on a fresh Raspberry Pi OS:
 
-- installs **Node.js 20** if it's missing or too old,
+- installs **Node.js 22** if it's missing or too old,
 - picks the package manager (**pnpm** if present, otherwise **npm**),
 - installs **Chromium** (+ `unclutter` for cursor hiding),
 - installs dependencies and **builds** the app,

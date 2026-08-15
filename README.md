@@ -127,7 +127,7 @@ Kiosk options, systemd details and troubleshooting are in
 
 ## Quick start (development)
 
-Requirements: **Node.js 20+** and **pnpm** (or npm).
+Requirements: **Node.js 22+** and **pnpm** (or npm).
 
 ```bash
 pnpm install

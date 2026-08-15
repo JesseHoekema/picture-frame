@@ -45,19 +45,19 @@ fi
 # ---- curl ----
 have curl || apt_install curl
 
-# ---- Node.js 20+ ----
+# ---- Node.js 22+ (required by better-sqlite3) ----
 need_node=1
 if have node; then
 	major="$(node -v | sed 's/v\([0-9]*\).*/\1/')"
-	[ "${major:-0}" -ge 18 ] && need_node=0
+	[ "${major:-0}" -ge 22 ] && need_node=0
 fi
 if [ "$need_node" -eq 1 ]; then
-	echo "==> Installing Node.js 20"
+	echo "==> Installing Node.js 22"
 	if [ "$IS_DEBIAN" -eq 1 ]; then
-		curl -fsSL https://deb.nodesource.com/setup_20.x | $SUDO bash -
+		curl -fsSL https://deb.nodesource.com/setup_22.x | $SUDO bash -
 		apt_install nodejs
 	else
-		echo "!! Install Node.js 20+ manually, then re-run." >&2
+		echo "!! Install Node.js 22+ manually, then re-run." >&2
 		exit 1
 	fi
 fi
