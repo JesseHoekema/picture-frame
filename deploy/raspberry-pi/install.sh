@@ -64,17 +64,10 @@ fi
 echo "==> Node: $(node -v)"
 
 # ---- package manager ----
-# Prefer pnpm, but pin a version compatible with the installed Node (pnpm 11
-# needs Node 22+). Fall back to npm if pnpm can't run.
+# Use pnpm only if it actually runs for the build user (corepack can pin a pnpm
+# that needs a newer Node than is installed). Otherwise npm, which always works.
 PM=npm
-NODE_MAJOR="$(node -v | sed 's/v\([0-9]*\).*/\1/')"
-PNPM_PIN="pnpm@10"
-[ "${NODE_MAJOR:-0}" -ge 22 ] && PNPM_PIN="pnpm@latest"
-if have corepack; then
-	$SUDO corepack enable >/dev/null 2>&1 || true
-	corepack prepare "$PNPM_PIN" --activate >/dev/null 2>&1 || true
-fi
-if have pnpm && pnpm --version >/dev/null 2>&1; then
+if as_user pnpm --version >/dev/null 2>&1; then
 	PM=pnpm
 fi
 echo "==> Package manager: $PM"
@@ -85,6 +78,9 @@ if ! have chromium-browser && ! have chromium; then
 	apt_install chromium-browser || apt_install chromium || true
 fi
 have unclutter || apt_install unclutter || true
+
+# ---- native build tools (better-sqlite3 falls back to compiling if no prebuilt) ----
+have make && have g++ && have python3 || apt_install python3 make g++ || true
 
 # ---- build app ----
 cd "$APP_DIR"
