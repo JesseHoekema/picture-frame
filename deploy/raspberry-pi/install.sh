@@ -54,7 +54,7 @@ fi
 if [ "$need_node" -eq 1 ]; then
 	echo "==> Installing Node.js 20"
 	if [ "$IS_DEBIAN" -eq 1 ]; then
-		curl -fsSL https://deb.nodesource.com/setup_20.x | $SUDO -E bash -
+		curl -fsSL https://deb.nodesource.com/setup_20.x | $SUDO bash -
 		apt_install nodejs
 	else
 		echo "!! Install Node.js 20+ manually, then re-run." >&2
