@@ -8,7 +8,7 @@ import {
 } from '$lib/server/auth';
 
 export const actions: Actions = {
-	default: async ({ request, cookies }) => {
+	default: async ({ request, cookies, url }) => {
 		const form = await request.formData();
 		const username = String(form.get('username') ?? '').trim();
 		const password = String(form.get('password') ?? '');
@@ -23,7 +23,7 @@ export const actions: Actions = {
 			path: '/',
 			httpOnly: true,
 			sameSite: 'lax',
-			secure: process.env.NODE_ENV === 'production',
+			secure: url.protocol === 'https:',
 			maxAge: 60 * 60 * 24 * 30
 		});
 		throw redirect(303, '/admin');

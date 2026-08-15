@@ -7,7 +7,7 @@ import { testBackend } from '$lib/server/storage';
 import { testConnection as testImmich } from '$lib/server/immich';
 
 export const actions: Actions = {
-	default: async ({ request, cookies }) => {
+	default: async ({ request, cookies, url }) => {
 		if (hasUsers()) throw redirect(303, '/login');
 
 		const form = await request.formData();
@@ -69,7 +69,7 @@ export const actions: Actions = {
 			path: '/',
 			httpOnly: true,
 			sameSite: 'lax',
-			secure: process.env.NODE_ENV === 'production',
+			secure: url.protocol === 'https:',
 			maxAge: 60 * 60 * 24 * 30
 		});
 

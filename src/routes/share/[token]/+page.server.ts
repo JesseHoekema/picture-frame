@@ -28,7 +28,7 @@ export const load: PageServerLoad = async ({ params, cookies }) => {
 };
 
 export const actions: Actions = {
-	unlock: async ({ params, request, cookies }) => {
+	unlock: async ({ params, request, cookies, url }) => {
 		const link = getShareLinkByToken(params.token);
 		if (!link) throw error(404, 'Not found');
 		const form = await request.formData();
@@ -40,7 +40,7 @@ export const actions: Actions = {
 			path: `/share/${link.token}`,
 			httpOnly: true,
 			sameSite: 'lax',
-			secure: process.env.NODE_ENV === 'production',
+			secure: url.protocol === 'https:',
 			maxAge: 60 * 60 * 24
 		});
 		return { unlocked: true };
