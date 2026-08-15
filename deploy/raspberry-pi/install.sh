@@ -64,11 +64,12 @@ fi
 echo "==> Node: $(node -v)"
 
 # ---- package manager ----
-# Use pnpm only if it actually runs for the build user (corepack can pin a pnpm
-# that needs a newer Node than is installed). Otherwise npm, which always works.
-PM=npm
-if as_user pnpm --version >/dev/null 2>&1; then
-	PM=pnpm
+# npm by default: it compiles native modules (better-sqlite3) without pnpm 10+'s
+# build-approval step, and needs no corepack setup. Override with PF_PM=pnpm.
+PM="${PF_PM:-npm}"
+if [ "$PM" = "pnpm" ] && ! as_user pnpm --version >/dev/null 2>&1; then
+	echo "!! pnpm not usable — falling back to npm"
+	PM=npm
 fi
 echo "==> Package manager: $PM"
 
@@ -84,6 +85,12 @@ have make && have g++ && have python3 || apt_install python3 make g++ || true
 
 # ---- build app ----
 cd "$APP_DIR"
+# A node_modules left by a different package manager (e.g. pnpm's symlink store)
+# confuses npm — start clean when the manager doesn't match.
+if [ "$PM" = "npm" ] && [ -d "$APP_DIR/node_modules/.pnpm" ]; then
+	echo "==> Clearing previous pnpm node_modules"
+	as_user rm -rf "$APP_DIR/node_modules"
+fi
 echo "==> Installing dependencies ($PM)"
 as_user "$PM" install
 echo "==> Building"
