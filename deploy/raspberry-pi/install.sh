@@ -64,15 +64,18 @@ fi
 echo "==> Node: $(node -v)"
 
 # ---- package manager ----
-if have pnpm; then
-	PM=pnpm
-elif have corepack; then
-	echo "==> Enabling pnpm via corepack"
+# Prefer pnpm, but pin a version compatible with the installed Node (pnpm 11
+# needs Node 22+). Fall back to npm if pnpm can't run.
+PM=npm
+NODE_MAJOR="$(node -v | sed 's/v\([0-9]*\).*/\1/')"
+PNPM_PIN="pnpm@10"
+[ "${NODE_MAJOR:-0}" -ge 22 ] && PNPM_PIN="pnpm@latest"
+if have corepack; then
 	$SUDO corepack enable >/dev/null 2>&1 || true
-	corepack prepare pnpm@latest --activate >/dev/null 2>&1 || true
-	have pnpm && PM=pnpm || PM=npm
-else
-	PM=npm
+	corepack prepare "$PNPM_PIN" --activate >/dev/null 2>&1 || true
+fi
+if have pnpm && pnpm --version >/dev/null 2>&1; then
+	PM=pnpm
 fi
 echo "==> Package manager: $PM"
 
