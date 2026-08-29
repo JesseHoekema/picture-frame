@@ -273,6 +273,10 @@
     height: 100%;
     background: #000;
     overflow: hidden;
+    cursor: none;
+  }
+  :global(*) {
+    cursor: none !important;
   }
   .frame {
     position: fixed;

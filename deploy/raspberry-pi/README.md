@@ -63,7 +63,10 @@ sudo reboot
   and `sudo systemctl restart picture-frame`.
 - **Kiosk** uses `http://localhost:3000/frame` (read-only) and is unaffected.
 - Turn the display off via the in-app **motion / light control** or the
-  dashboard **screen on/off** toggle.
+  dashboard **screen on/off** toggle. On the `cage` kiosk this **physically powers
+  the panel off** via `wlopm` (falls back to a black screen if `wlopm` is
+  unavailable). For an HDMI TV, selecting a Home Assistant display entity
+  (CEC / smart plug) is the most reliable way to cut power.
 
 ---
 
@@ -74,7 +77,8 @@ sudo reboot
 | `bootstrap.sh`          | `curl \| sudo bash` entrypoint: clones, then runs `install.sh`. |
 | `install.sh`            | One-shot installer: runtime, build, service, kiosk.        |
 | `picture-frame.service` | systemd unit template for the Node server.                 |
-| `kiosk.sh`              | Launches Chromium full-screen at `/frame`.                 |
+| `kiosk.sh`              | Desktop autostart launcher for Chromium at `/frame`.       |
+| `kiosk-cage.sh`         | Lite/`cage` launcher — Chromium + display power (`wlopm`).  |
 | `env.example`           | Environment defaults (PORT, ALLOWED_ORIGINS, body limit).  |
 
 ---

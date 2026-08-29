@@ -3,17 +3,14 @@ set -euo pipefail
 
 URL="${FRAME_URL:-http://localhost:3000/frame}"
 
-# Wait for app to be reachable
 until curl -sf "$URL" >/dev/null 2>&1; do
 	sleep 2
 done
 
-# Disable screen blanking / power management (X11 only; harmless on Wayland).
 xset s off 2>/dev/null || true
 xset -dpms 2>/dev/null || true
 xset s noblank 2>/dev/null || true
 
-# Hide mouse cursor when idle
 command -v unclutter >/dev/null 2>&1 && unclutter -idle 0 -root &
 
 CHROME="$(command -v chromium-browser || command -v chromium || true)"

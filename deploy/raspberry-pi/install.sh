@@ -45,7 +45,7 @@ fi
 # ---- curl ----
 have curl || apt_install curl
 
-# ---- Node.js 22+ (required by better-sqlite3) ----
+# ---- Node.js 22+ ----
 need_node=1
 if have node; then
 	major="$(node -v | sed 's/v\([0-9]*\).*/\1/')"
@@ -64,8 +64,6 @@ fi
 echo "==> Node: $(node -v)"
 
 # ---- package manager ----
-# npm by default: it compiles native modules (better-sqlite3) without pnpm 10+'s
-# build-approval step, and needs no corepack setup. Override with PF_PM=pnpm.
 PM="${PF_PM:-npm}"
 if [ "$PM" = "pnpm" ] && ! as_user pnpm --version >/dev/null 2>&1; then
 	echo "!! pnpm not usable — falling back to npm"
@@ -80,13 +78,11 @@ if ! have chromium-browser && ! have chromium; then
 fi
 have unclutter || apt_install unclutter || true
 
-# ---- native build tools (better-sqlite3 falls back to compiling if no prebuilt) ----
+# ---- native build tools ----
 have make && have g++ && have python3 || apt_install python3 make g++ || true
 
 # ---- build app ----
 cd "$APP_DIR"
-# A node_modules left by a different package manager (e.g. pnpm's symlink store)
-# confuses npm — start clean when the manager doesn't match.
 if [ "$PM" = "npm" ] && [ -d "$APP_DIR/node_modules/.pnpm" ]; then
 	echo "==> Clearing previous pnpm node_modules"
 	as_user rm -rf "$APP_DIR/node_modules"
@@ -120,8 +116,6 @@ $SUDO systemctl restart picture-frame
 KIOSK="$SCRIPT_DIR/kiosk.sh"
 KIOSK_URL="${FRAME_URL:-http://localhost:3000/frame}"
 
-# Add the frame to an existing desktop's autostart file. Detect the actual
-# compositor binary (a leftover ~/.config dir is not proof a desktop is installed).
 add_desktop_autostart() {
 	local cfg
 	if have labwc; then
@@ -143,13 +137,12 @@ add_desktop_autostart() {
 	return 1
 }
 
-# No desktop (e.g. Raspberry Pi OS Lite): run Chromium full-screen via `cage`,
-# a minimal Wayland kiosk compositor, straight from a systemd service on tty1.
 setup_cage_kiosk() {
 	apt_install cage || true
-	local chromium uid
-	chromium="$(command -v chromium || command -v chromium-browser || echo /usr/bin/chromium)"
+	apt_install wlopm || true
+	local uid
 	uid="$(id -u "$RUN_USER")"
+	chmod +x "$SCRIPT_DIR/kiosk-cage.sh"
 	$SUDO usermod -aG video,render,input,tty "$RUN_USER" >/dev/null 2>&1 || true
 
 	$SUDO tee /etc/systemd/system/picture-frame-kiosk.service >/dev/null <<EOF
@@ -166,8 +159,9 @@ StandardInput=tty
 StandardOutput=journal
 StandardError=journal
 Environment=XDG_RUNTIME_DIR=/run/user/$uid
+Environment=FRAME_URL=$KIOSK_URL
 ExecStartPre=/bin/sh -c 'until curl -sf $KIOSK_URL >/dev/null 2>&1; do sleep 2; done'
-ExecStart=/usr/bin/cage -- $chromium --kiosk --ozone-platform=wayland --enable-features=UseOzonePlatform --noerrdialogs --disable-infobars --incognito --no-first-run --check-for-update-interval=31536000 $KIOSK_URL
+ExecStart=/usr/bin/cage -- $SCRIPT_DIR/kiosk-cage.sh
 Restart=always
 RestartSec=3
 
@@ -175,7 +169,6 @@ RestartSec=3
 WantedBy=multi-user.target
 EOF
 
-	# Free tty1 (console login) so cage can own the display.
 	$SUDO systemctl disable getty@tty1.service >/dev/null 2>&1 || true
 	$SUDO systemctl stop getty@tty1.service >/dev/null 2>&1 || true
 	$SUDO systemctl daemon-reload
