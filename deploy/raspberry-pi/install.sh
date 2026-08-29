@@ -137,17 +137,25 @@ add_desktop_autostart() {
 	return 1
 }
 
-setup_cage_kiosk() {
-	apt_install cage || true
-	apt_install wlopm || true
+setup_sway_kiosk() {
+	apt_install sway || true
 	local uid
 	uid="$(id -u "$RUN_USER")"
-	chmod +x "$SCRIPT_DIR/kiosk-cage.sh"
+	chmod +x "$SCRIPT_DIR/kiosk-sway.sh"
 	$SUDO usermod -aG video,render,input,tty "$RUN_USER" >/dev/null 2>&1 || true
+
+	$SUDO mkdir -p /etc/picture-frame
+	$SUDO tee /etc/picture-frame/sway.conf >/dev/null <<EOF
+output * bg #000000 solid_color
+seat * hide_cursor 500
+default_border none
+default_floating_border none
+exec "FRAME_URL=$KIOSK_URL $SCRIPT_DIR/kiosk-sway.sh"
+EOF
 
 	$SUDO tee /etc/systemd/system/picture-frame-kiosk.service >/dev/null <<EOF
 [Unit]
-Description=Picture Frame kiosk (cage)
+Description=Picture Frame kiosk (sway)
 After=picture-frame.service systemd-user-sessions.service
 Wants=picture-frame.service
 
@@ -159,9 +167,9 @@ StandardInput=tty
 StandardOutput=journal
 StandardError=journal
 Environment=XDG_RUNTIME_DIR=/run/user/$uid
-Environment=FRAME_URL=$KIOSK_URL
+Environment=WLR_LIBINPUT_NO_DEVICES=1
 ExecStartPre=/bin/sh -c 'until curl -sf $KIOSK_URL >/dev/null 2>&1; do sleep 2; done'
-ExecStart=/usr/bin/cage -- $SCRIPT_DIR/kiosk-cage.sh
+ExecStart=/usr/bin/sway -c /etc/picture-frame/sway.conf
 Restart=always
 RestartSec=3
 
@@ -174,14 +182,14 @@ EOF
 	$SUDO systemctl daemon-reload
 	$SUDO systemctl enable picture-frame-kiosk.service >/dev/null 2>&1 || true
 	$SUDO systemctl restart picture-frame-kiosk.service || true
-	echo "cage systemd service (picture-frame-kiosk)"
+	echo "sway systemd service (picture-frame-kiosk)"
 }
 
 if desktop="$(add_desktop_autostart)"; then
 	echo "==> Kiosk autostart: $desktop"
 else
 	echo "==> No desktop found — setting up standalone kiosk"
-	echo "==> Kiosk: $(setup_cage_kiosk)"
+	echo "==> Kiosk: $(setup_sway_kiosk)"
 fi
 
 echo

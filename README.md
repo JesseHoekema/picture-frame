@@ -62,7 +62,7 @@ Built with SvelteKit (Svelte 5), Tailwind CSS v4, shadcn-svelte, and SQLite.
 Turn a Raspberry Pi into a wall-mounted frame. **One command** does everything —
 it installs Node.js & Chromium, clones the project, builds it, creates a systemd
 service, and sets the frame to launch full-screen on boot (works on **Raspberry
-Pi OS Lite** too, via a `cage` kiosk — no desktop required).
+Pi OS Lite** too, via a `sway` kiosk — no desktop required).
 
 On a fresh **Raspberry Pi OS** (Lite or Desktop), open a terminal and run:
 

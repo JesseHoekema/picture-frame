@@ -41,8 +41,8 @@ Either way the script does **everything**, on a fresh Raspberry Pi OS:
 - installs, enables and starts the **`picture-frame`** systemd service,
 - sets up the **kiosk** so the frame opens full-screen on boot — using the
   desktop's autostart (**labwc / wayfire / LXDE**) if one is installed, or, on
-  **Raspberry Pi OS Lite** (no desktop), a self-contained **`cage`** kiosk
-  service on tty1.
+  **Raspberry Pi OS Lite** (no desktop), a self-contained **`sway`** kiosk
+  service on tty1 (hides the cursor, real DPMS off).
 
 It's safe to re-run (idempotent) — use it to update, too.
 
@@ -63,10 +63,11 @@ sudo reboot
   and `sudo systemctl restart picture-frame`.
 - **Kiosk** uses `http://localhost:3000/frame` (read-only) and is unaffected.
 - Turn the display off via the in-app **motion / light control** or the
-  dashboard **screen on/off** toggle. On the `cage` kiosk this **physically powers
-  the panel off** via `wlopm` (falls back to a black screen if `wlopm` is
-  unavailable). For an HDMI TV, selecting a Home Assistant display entity
-  (CEC / smart plug) is the most reliable way to cut power.
+  dashboard **screen on/off** toggle. On the `sway` kiosk this **physically powers
+  the panel off** via DPMS (`swaymsg output * dpms off`). For an HDMI TV,
+  selecting a Home Assistant display entity (CEC / smart plug) is the most
+  reliable way to cut power.
+- The `sway` kiosk hides the mouse cursor (`hide_cursor`).
 
 ---
 
@@ -78,7 +79,7 @@ sudo reboot
 | `install.sh`            | One-shot installer: runtime, build, service, kiosk.        |
 | `picture-frame.service` | systemd unit template for the Node server.                 |
 | `kiosk.sh`              | Desktop autostart launcher for Chromium at `/frame`.       |
-| `kiosk-cage.sh`         | Lite/`cage` launcher — Chromium + display power (`wlopm`).  |
+| `kiosk-sway.sh`         | Lite/`sway` launcher — Chromium + display power (DPMS).     |
 | `env.example`           | Environment defaults (PORT, ALLOWED_ORIGINS, body limit).  |
 
 ---
