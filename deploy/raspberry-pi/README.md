@@ -39,8 +39,10 @@ Either way the script does **everything**, on a fresh Raspberry Pi OS:
 - creates `.env` with `ALLOWED_ORIGINS` auto-set to the Pi's **hostname, LAN IP
   and localhost** (all on `:3000`) and a 100 MB upload limit,
 - installs, enables and starts the **`picture-frame`** systemd service,
-- detects the desktop (**labwc / wayfire / LXDE**) and wires up the **kiosk
-  autostart** so the frame opens full-screen on boot.
+- sets up the **kiosk** so the frame opens full-screen on boot — using the
+  desktop's autostart (**labwc / wayfire / LXDE**) if one is installed, or, on
+  **Raspberry Pi OS Lite** (no desktop), a self-contained **`cage`** kiosk
+  service on tty1.
 
 It's safe to re-run (idempotent) — use it to update, too.
 

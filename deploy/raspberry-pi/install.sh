@@ -116,37 +116,80 @@ $SUDO systemctl daemon-reload
 $SUDO systemctl enable picture-frame >/dev/null 2>&1 || true
 $SUDO systemctl restart picture-frame
 
-# ---- kiosk autostart ----
+# ---- kiosk ----
 KIOSK="$SCRIPT_DIR/kiosk.sh"
-setup_autostart() {
+KIOSK_URL="${FRAME_URL:-http://localhost:3000/frame}"
+
+# Add the frame to an existing desktop's autostart file. Detect the actual
+# compositor binary (a leftover ~/.config dir is not proof a desktop is installed).
+add_desktop_autostart() {
 	local cfg
-	if have labwc || [ -d "$USER_HOME/.config/labwc" ]; then
+	if have labwc; then
 		cfg="$USER_HOME/.config/labwc/autostart"
-		as_user mkdir -p "$(dirname "$cfg")"
-		as_user touch "$cfg"
+		as_user mkdir -p "$(dirname "$cfg")"; as_user touch "$cfg"
 		grep -qF "$KIOSK" "$cfg" 2>/dev/null || echo "$KIOSK &" | as_user tee -a "$cfg" >/dev/null
-		echo "labwc ($cfg)"
-	elif have wayfire || [ -f "$USER_HOME/.config/wayfire.ini" ]; then
-		cfg="$USER_HOME/.config/wayfire.ini"
-		as_user touch "$cfg"
+		echo "labwc ($cfg)"; return 0
+	elif have wayfire; then
+		cfg="$USER_HOME/.config/wayfire.ini"; as_user touch "$cfg"
 		grep -qF "$KIOSK" "$cfg" 2>/dev/null ||
 			printf '\n[autostart]\nframe = %s\n' "$KIOSK" | as_user tee -a "$cfg" >/dev/null
-		echo "wayfire ($cfg)"
-	elif [ -d "$USER_HOME/.config/lxsession" ] || have lxpanel; then
+		echo "wayfire ($cfg)"; return 0
+	elif have lxpanel || have startlxde || have lxsession; then
 		cfg="$USER_HOME/.config/lxsession/LXDE-pi/autostart"
-		as_user mkdir -p "$(dirname "$cfg")"
-		as_user touch "$cfg"
+		as_user mkdir -p "$(dirname "$cfg")"; as_user touch "$cfg"
 		grep -qF "$KIOSK" "$cfg" 2>/dev/null || echo "@$KIOSK" | as_user tee -a "$cfg" >/dev/null
-		echo "LXDE ($cfg)"
-	else
-		cfg="$USER_HOME/.config/labwc/autostart"
-		as_user mkdir -p "$(dirname "$cfg")"
-		as_user touch "$cfg"
-		grep -qF "$KIOSK" "$cfg" 2>/dev/null || echo "$KIOSK &" | as_user tee -a "$cfg" >/dev/null
-		echo "no desktop detected — defaulted to labwc ($cfg)"
+		echo "LXDE ($cfg)"; return 0
 	fi
+	return 1
 }
-echo "==> Kiosk autostart: $(setup_autostart)"
+
+# No desktop (e.g. Raspberry Pi OS Lite): run Chromium full-screen via `cage`,
+# a minimal Wayland kiosk compositor, straight from a systemd service on tty1.
+setup_cage_kiosk() {
+	apt_install cage || true
+	local chromium uid
+	chromium="$(command -v chromium || command -v chromium-browser || echo /usr/bin/chromium)"
+	uid="$(id -u "$RUN_USER")"
+	$SUDO usermod -aG video,render,input,tty "$RUN_USER" >/dev/null 2>&1 || true
+
+	$SUDO tee /etc/systemd/system/picture-frame-kiosk.service >/dev/null <<EOF
+[Unit]
+Description=Picture Frame kiosk (cage)
+After=picture-frame.service systemd-user-sessions.service
+Wants=picture-frame.service
+
+[Service]
+User=$RUN_USER
+PAMName=login
+TTYPath=/dev/tty1
+StandardInput=tty
+StandardOutput=journal
+StandardError=journal
+Environment=XDG_RUNTIME_DIR=/run/user/$uid
+ExecStartPre=/bin/sh -c 'until curl -sf $KIOSK_URL >/dev/null 2>&1; do sleep 2; done'
+ExecStart=/usr/bin/cage -- $chromium --kiosk --ozone-platform=wayland --enable-features=UseOzonePlatform --noerrdialogs --disable-infobars --incognito --no-first-run --check-for-update-interval=31536000 $KIOSK_URL
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+	# Free tty1 (console login) so cage can own the display.
+	$SUDO systemctl disable getty@tty1.service >/dev/null 2>&1 || true
+	$SUDO systemctl stop getty@tty1.service >/dev/null 2>&1 || true
+	$SUDO systemctl daemon-reload
+	$SUDO systemctl enable picture-frame-kiosk.service >/dev/null 2>&1 || true
+	$SUDO systemctl restart picture-frame-kiosk.service || true
+	echo "cage systemd service (picture-frame-kiosk)"
+}
+
+if desktop="$(add_desktop_autostart)"; then
+	echo "==> Kiosk autostart: $desktop"
+else
+	echo "==> No desktop found — setting up standalone kiosk"
+	echo "==> Kiosk: $(setup_cage_kiosk)"
+fi
 
 echo
 echo "==> Server status:"

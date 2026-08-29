@@ -61,9 +61,10 @@ Built with SvelteKit (Svelte 5), Tailwind CSS v4, shadcn-svelte, and SQLite.
 
 Turn a Raspberry Pi into a wall-mounted frame. **One command** does everything —
 it installs Node.js & Chromium, clones the project, builds it, creates a systemd
-service, and configures the desktop to launch the frame full-screen on boot.
+service, and sets the frame to launch full-screen on boot (works on **Raspberry
+Pi OS Lite** too, via a `cage` kiosk — no desktop required).
 
-On a fresh **Raspberry Pi OS (with desktop)**, open a terminal and run:
+On a fresh **Raspberry Pi OS** (Lite or Desktop), open a terminal and run:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/JesseHoekema/picture-frame/main/deploy/raspberry-pi/bootstrap.sh | sudo bash
